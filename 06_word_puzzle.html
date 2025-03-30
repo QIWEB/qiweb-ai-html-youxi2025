@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .game-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .game-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .game-title {
+            font-size: 2em;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        .game-board {
+            width: 600px;
+            height: 600px;
+            background: #DEB887;
+            border: 2px solid #8B4513;
+            position: relative;
+            margin: 0 auto;
+        }
+        .grid-line {
+            position: absolute;
+            background: #000;
+        }
+        .grid-line.vertical {
+            width: 1px;
+            height: 100%;
+        }
+        .grid-line.horizontal {
+            width: 100%;
+            height: 1px;
+        }
+        .piece {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .piece:hover {
+            transform: scale(1.1);
+        }
+        .piece.black {
+            background: radial-gradient(circle at 30% 30%, #666, #000);
+        }
+        .piece.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+        }
+        .piece.last-move {
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background: #3182ce;
+        }
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        .back-link:hover {
+            background: #764ba2;
+        }
+        .score-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .score-box {
+            background: #f7fafc;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .score-label {
+            font-size: 0.9em;
+            color: #718096;
+        }
+        .score-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .mode-selector {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .mode-selector button {
+            margin: 0 5px;
+            background: #edf2f7;
+            color: #2d3748;
+        }
+        .mode-selector button.active {
+            background: #4299e1;
+            color: white;
+        }
+        .status {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            color: #4a5568;
+        }
+        @media (max-width: 600px) {
+            .game-board {
+                width: 300px;
+                height: 300px;
+            }
+            .piece {
+                width: 20px;
+                height: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">返回主页</a>
+    
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">五子棋</h1>
+            <div class="score-container">
+                <div class="score-box">
+                    <div class="score-label">黑方</div>
+                    <div class="score-value" id="blackScore">0</div>
+                </div>
+                <div class="score-box">
+                    <div class="score-label">白方</div>
+                    <div class="score-value" id="whiteScore">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mode-selector">
+            <button id="pvpMode" class="active">双人对战</button>
+            <button id="pvcMode">人机对战</button>
+        </div>
+        
+        <div class="status" id="status">黑方回合</div>
+        
+        <div class="game-board" id="gameBoard"></div>
+        
+        <div class="controls">
+            <button id="newGame">新游戏</button>
+            <button id="undo">悔棋</button>
+        </div>
+    </div>
+
+    <script>
+        class GomokuGame {
+            constructor() {
+                this.boardSize = 15;
+                this.board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(0));
+                this.currentPlayer = 1; // 1: 黑方, 2: 白方
+                this.gameOver = false;
+                this.isPVC = false;
+                this.history = [];
+                this.scores = {
+                    black: 0,
+                    white: 0
+                };
+                
+                this.gameBoard = document.getElementById('gameBoard');
+                this.statusDisplay = document.getElementById('status');
+                this.blackScoreDisplay = document.getElementById('blackScore');
+                this.whiteScoreDisplay = document.getElementById('whiteScore');
+                this.newGameButton = document.getElementById('newGame');
+                this.undoButton = document.getElementById('undo');
+                this.pvpModeButton = document.getElementById('pvpMode');
+                this.pvcModeButton = document.getElementById('pvcMode');
+                
+                this.init();
+            }
+            
+            init() {
+                this.newGameButton.addEventListener('click', () => this.startNewGame());
+                this.undoButton.addEventListener('click', () => this.undo());
+                this.pvpModeButton.addEventListener('click', () => this.setMode('pvp'));
+                this.pvcModeButton.addEventListener('click', () => this.setMode('pvc'));
+                
+                this.createGrid();
+                this.startNewGame();
+            }
+            
+            createGrid() {
+                const cellSize = this.gameBoard.clientWidth / (this.boardSize - 1);
+                
+                // 创建垂直线
+                for (let i = 0; i < this.boardSize; i++) {
+                    const line = document.createElement('div');
+                    line.className = 'grid-line vertical';
+                    line.style.left = `${i * cellSize}px`;
+                    this.gameBoard.appendChild(line);
+                }
+                
+                // 创建水平线
+                for (let i = 0; i < this.boardSize; i++) {
+                    const line = document.createElement('div');
+                    line.className = 'grid-line horizontal';
+                    line.style.top = `${i * cellSize}px`;
+                    this.gameBoard.appendChild(line);
+                }
+            }
+            
+            startNewGame() {
+                this.board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(0));
+                this.currentPlayer = 1;
+                this.gameOver = false;
+                this.history = [];
+                this.statusDisplay.textContent = '黑方回合';
+                this.render();
+            }
+            
+            setMode(mode) {
+                this.isPVC = mode === 'pvc';
+                this.pvpModeButton.classList.toggle('active', mode === 'pvp');
+                this.pvcModeButton.classList.toggle('active', mode === 'pvc');
+                this.startNewGame();
+            }
+            
+            render() {
+                // 清除所有棋子
+                const pieces = this.gameBoard.querySelectorAll('.piece');
+                pieces.forEach(piece => piece.remove());
+                
+                // 重新渲染棋子
+                for (let row = 0; row < this.boardSize; row++) {
+                    for (let col = 0; col < this.boardSize; col++) {
+                        if (this.board[row][col] !== 0) {
+                            this.createPiece(row, col);
+                        }
+                    }
+                }
+            }
+            
+            createPiece(row, col) {
+                const cellSize = this.gameBoard.clientWidth / (this.boardSize - 1);
+                const piece = document.createElement('div');
+                piece.className = `piece ${this.board[row][col] === 1 ? 'black' : 'white'}`;
+                
+                // 如果是最后一步，添加高亮效果
+                if (this.history.length > 0) {
+                    const lastMove = this.history[this.history.length - 1];
+                    if (lastMove.row === row && lastMove.col === col) {
+                        piece.classList.add('last-move');
+                    }
+                }
+                
+                piece.style.left = `${col * cellSize - 20}px`;
+                piece.style.top = `${row * cellSize - 20}px`;
+                
+                this.gameBoard.appendChild(piece);
+            }
+            
+            makeMove(row, col) {
+                if (this.gameOver || this.board[row][col] !== 0) return;
+                
+                this.board[row][col] = this.currentPlayer;
+                this.history.push({ row, col, player: this.currentPlayer });
+                
+                if (this.checkWin(row, col)) {
+                    this.handleWin();
+                    return;
+                }
+                
+                this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+                this.statusDisplay.textContent = `${this.currentPlayer === 1 ? '黑' : '白'}方回合`;
+                this.render();
+                
+                if (this.isPVC && this.currentPlayer === 2) {
+                    setTimeout(() => this.makeAIMove(), 500);
+                }
+            }
+            
+            makeAIMove() {
+                if (this.gameOver) return;
+                
+                // 简单的AI策略：评估每个位置的分数
+                let bestScore = -Infinity;
+                let bestMove = null;
+                
+                for (let row = 0; row < this.boardSize; row++) {
+                    for (let col = 0; col < this.boardSize; col++) {
+                        if (this.board[row][col] === 0) {
+                            const score = this.evaluatePosition(row, col);
+                            if (score > bestScore) {
+                                bestScore = score;
+                                bestMove = { row, col };
+                            }
+                        }
+                    }
+                }
+                
+                if (bestMove) {
+                    this.makeMove(bestMove.row, bestMove.col);
+                }
+            }
+            
+            evaluatePosition(row, col) {
+                let score = 0;
+                
+                // 检查是否能赢
+                this.board[row][col] = 2;
+                if (this.checkWin(row, col)) {
+                    this.board[row][col] = 0;
+                    return 1000;
+                }
+                
+                // 检查是否能阻止对手赢
+                this.board[row][col] = 1;
+                if (this.checkWin(row, col)) {
+                    this.board[row][col] = 0;
+                    return 900;
+                }
+                
+                // 评估周围8个方向
+                const directions = [
+                    [-1, -1], [-1, 0], [-1, 1],
+                    [0, -1],           [0, 1],
+                    [1, -1],  [1, 0],  [1, 1]
+                ];
+                
+                for (const [dx, dy] of directions) {
+                    score += this.evaluateDirection(row, col, dx, dy);
+                }
+                
+                this.board[row][col] = 0;
+                return score;
+            }
+            
+            evaluateDirection(row, col, dx, dy) {
+                let score = 0;
+                let count = 0;
+                let space = 0;
+                
+                // 正向检查
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row + dx * i;
+                    const newCol = col + dy * i;
+                    
+                    if (this.isValidPosition(newRow, newCol)) {
+                        if (this.board[newRow][newCol] === 2) {
+                            count++;
+                            space = 0;
+                        } else if (this.board[newRow][newCol] === 0) {
+                            space++;
+                            break;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 反向检查
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row - dx * i;
+                    const newCol = col - dy * i;
+                    
+                    if (this.isValidPosition(newRow, newCol)) {
+                        if (this.board[newRow][newCol] === 2) {
+                            count++;
+                            space = 0;
+                        } else if (this.board[newRow][newCol] === 0) {
+                            space++;
+                            break;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 根据连子数和空位评分
+                if (count >= 4) score += 100;
+                else if (count === 3 && space >= 2) score += 50;
+                else if (count === 2 && space >= 2) score += 10;
+                
+                return score;
+            }
+            
+            isValidPosition(row, col) {
+                return row >= 0 && row < this.boardSize && col >= 0 && col < this.boardSize;
+            }
+            
+            checkWin(row, col) {
+                const directions = [
+                    [[0, 1], [0, -1]], // 水平
+                    [[1, 0], [-1, 0]], // 垂直
+                    [[1, 1], [-1, -1]], // 对角线
+                    [[1, -1], [-1, 1]] // 反对角线
+                ];
+                
+                for (const direction of directions) {
+                    let count = 1;
+                    
+                    for (const [dx, dy] of direction) {
+                        let x = row + dx;
+                        let y = col + dy;
+                        
+                        while (
+                            this.isValidPosition(x, y) &&
+                            this.board[x][y] === this.currentPlayer
+                        ) {
+                            count++;
+                            x += dx;
+                            y += dy;
+                        }
+                    }
+                    
+                    if (count >= 5) return true;
+                }
+                
+                return false;
+            }
+            
+            handleWin() {
+                this.gameOver = true;
+                const winner = this.currentPlayer === 1 ? '黑' : '白';
+                this.scores[this.currentPlayer === 1 ? 'black' : 'white']++;
+                this.updateScores();
+                
+                setTimeout(() => {
+                    alert(`${winner}方获胜！`);
+                }, 500);
+            }
+            
+            updateScores() {
+                this.blackScoreDisplay.textContent = this.scores.black;
+                this.whiteScoreDisplay.textContent = this.scores.white;
+            }
+            
+            undo() {
+                if (this.history.length === 0 || this.gameOver) return;
+                
+                const lastMove = this.history.pop();
+                this.board[lastMove.row][lastMove.col] = 0;
+                this.currentPlayer = lastMove.player;
+                this.gameOver = false;
+                this.statusDisplay.textContent = `${this.currentPlayer === 1 ? '黑' : '白'}方回合`;
+                this.render();
+            }
+            
+            handleClick(event) {
+                if (this.gameOver || (this.isPVC && this.currentPlayer === 2)) return;
+                
+                const rect = this.gameBoard.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                const cellSize = this.gameBoard.clientWidth / (this.boardSize - 1);
+                const col = Math.round(x / cellSize);
+                const row = Math.round(y / cellSize);
+                
+                if (this.isValidPosition(row, col)) {
+                    this.makeMove(row, col);
+                }
+            }
+        }
+        
+        // 初始化游戏
+        const game = new GomokuGame();
+        document.getElementById('gameBoard').addEventListener('click', (e) => game.handleClick(e));
+    </script>
+</body>
+</html> 

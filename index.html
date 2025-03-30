@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>休闲小游戏导航</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 40px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-bottom: 40px;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        .game-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .game-card:hover {
+            transform: translateY(-5px);
+        }
+        .game-card h2 {
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+        .game-card p {
+            color: #718096;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        .game-link {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        .game-link:hover {
+            background: #764ba2;
+        }
+        .game-number {
+            font-size: 0.9em;
+            color: #a0aec0;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>休闲小游戏导航</h1>
+        <p class="subtitle">30款精心挑选的休闲小游戏，让您随时随地享受游戏乐趣</p>
+    </header>
+    
+    <div class="container">
+        <div class="games-grid">
+            <div class="game-card">
+                <div class="game-number">01 - 连连看</div>
+                <h2>连连看</h2>
+                <p>匹配相同图案的图片以消除它们，考验观察力和记忆力。</p>
+                <a href="01_lianliankan.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">02 - 俄罗斯方块</div>
+                <h2>俄罗斯方块</h2>
+                <p>放置下落的方块来填充整个游戏区域，经典益智游戏。</p>
+                <a href="02_tetris.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">03 - 扫雷</div>
+                <h2>扫雷</h2>
+                <p>揭示所有未标记的地雷，避免踩到地雷，考验逻辑思维。</p>
+                <a href="03_minesweeper.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">04 - 拼图游戏</div>
+                <h2>拼图游戏</h2>
+                <p>重新排列碎片以恢复完整的图像，锻炼空间思维。</p>
+                <a href="04_puzzle.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">05 - 井字棋</div>
+                <h2>井字棋</h2>
+                <p>尝试猜测对方或电脑的选择，经典双人游戏。</p>
+                <a href="05_tic-tac-toe.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">06 - 拼字游戏</div>
+                <h2>拼字游戏</h2>
+                <p>利用给出的字母生成最多的单词，考验词汇量。</p>
+                <a href="06_word_puzzle.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">07 - 2048</div>
+                <h2>2048</h2>
+                <p>通过合并相同的数字来达到2048，考验策略思维。</p>
+                <a href="07_2048.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">08 - 翻转游戏</div>
+                <h2>翻转游戏</h2>
+                <p>揭示所有未标记的卡片以匹配它们，考验记忆力。</p>
+                <a href="08_flip_card.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">09 - 填色游戏</div>
+                <h2>填色游戏</h2>
+                <p>按照给定的图案填充空白区域，放松心情。</p>
+                <a href="09_color_fill.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">10 - 记忆匹配</div>
+                <h2>记忆匹配</h2>
+                <p>记住位置并找到配对的图像或颜色，锻炼记忆力。</p>
+                <a href="10_memory_match.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">11 - 塔防游戏</div>
+                <h2>塔防游戏</h2>
+                <p>用防御建筑阻止敌人的前进，考验策略。</p>
+                <a href="11_tower_defense.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">12 - 打砖块</div>
+                <h2>打砖块</h2>
+                <p>击落砖块以得分，经典街机游戏。</p>
+                <a href="12_breakout.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">13 - 拼装积木</div>
+                <h2>拼装积木</h2>
+                <p>将给定的形状排列成完整的图案，锻炼空间思维。</p>
+                <a href="13_block_puzzle.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">14 - 迷宫逃脱</div>
+                <h2>迷宫逃脱</h2>
+                <p>寻找正确的路径通过复杂的迷宫，考验方向感。</p>
+                <a href="14_maze.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">15 - 找不同</div>
+                <h2>找不同</h2>
+                <p>在两幅相似但有细微差异的画面中找出区别。</p>
+                <a href="15_spot_difference.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">16 - 飞行射击</div>
+                <h2>飞行射击</h2>
+                <p>操控角色躲避障碍或击落目标，考验反应速度。</p>
+                <a href="16_shooter.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">17 - 拼图挑战</div>
+                <h2>拼图挑战</h2>
+                <p>解决复杂度逐渐增加的拼图难题。</p>
+                <a href="17_puzzle_challenge.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">18 - 弹珠台游戏</div>
+                <h2>弹珠台游戏</h2>
+                <p>使用物理原理让小球滚动到指定位置。</p>
+                <a href="18_pinball.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">19 - 纸牌游戏</div>
+                <h2>纸牌游戏</h2>
+                <p>运用策略赢得胜利，包含多种经典纸牌玩法。</p>
+                <a href="19_card_game.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">20 - 动物拼接</div>
+                <h2>动物拼接</h2>
+                <p>将不规则形状的部分组合成完整的动物图像。</p>
+                <a href="20_animal_puzzle.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">21 - 连连看2.0</div>
+                <h2>连连看2.0</h2>
+                <p>增加更多复杂的模式和玩法，升级版连连看。</p>
+                <a href="21_lianliankan2.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">22 - 数字迷宫</div>
+                <h2>数字迷宫</h2>
+                <p>通过数字线索导航，考验逻辑思维。</p>
+                <a href="22_number_maze.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">23 - 空中飞行游戏</div>
+                <h2>空中飞行游戏</h2>
+                <p>在虚拟空域中躲避障碍并收集物品。</p>
+                <a href="23_air_combat.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">24 - 翻牌挑战</div>
+                <h2>翻牌挑战</h2>
+                <p>快速记忆并翻出卡片上的图案或文字。</p>
+                <a href="24_card_flip.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">25 - 冰球游戏</div>
+                <h2>冰球游戏</h2>
+                <p>运用物理原理操作角色打碎目标。</p>
+                <a href="25_ice_hockey.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">26 - 太空防御者</div>
+                <h2>太空防御者</h2>
+                <p>保护地球免受外星人的攻击。</p>
+                <a href="26_space_defender.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">27 - 塔建游戏</div>
+                <h2>塔建游戏</h2>
+                <p>通过放置不同类型的方块构建建筑物。</p>
+                <a href="27_tower_builder.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">28 - 像素画填色</div>
+                <h2>像素画填色</h2>
+                <p>使用预设的颜色填充网格以形成图像。</p>
+                <a href="28_pixel_art.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">29 - 拼字挑战</div>
+                <h2>拼字挑战</h2>
+                <p>在限定时间内想出尽可能多的单词。</p>
+                <a href="29_word_challenge.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">30 - 记忆赛跑</div>
+                <h2>记忆赛跑</h2>
+                <p>快速找到配对的图像或颜色，并收集奖励。</p>
+                <a href="30_memory_race.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">31 - 贪食蛇</div>
+                <h2>贪食蛇</h2>
+                <p>经典贪食蛇游戏，控制蛇吃食物并避免撞墙。</p>
+                <a href="31_snake.html" class="game-link">开始游戏</a>
+            </div>
+            
+            <div class="game-card">
+                <div class="game-number">32 - 数独</div>
+                <h2>数独</h2>
+                <p>经典数独游戏，考验逻辑思维能力。</p>
+                <a href="32_sudoku.html" class="game-link">开始游戏</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

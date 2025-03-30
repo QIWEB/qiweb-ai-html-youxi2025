@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>记忆翻牌</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .game-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .game-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .game-title {
+            font-size: 2em;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 0 auto;
+            max-width: 600px;
+        }
+        .card {
+            aspect-ratio: 1;
+            background: #4299e1;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: white;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+        .card-front,
+        .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+        }
+        .card-front {
+            background: #4299e1;
+        }
+        .card-back {
+            background: white;
+            transform: rotateY(180deg);
+            border: 2px solid #4299e1;
+        }
+        .card.matched {
+            background: #48bb78;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background: #3182ce;
+        }
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        .back-link:hover {
+            background: #764ba2;
+        }
+        .score-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .score-box {
+            background: #f7fafc;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .score-label {
+            font-size: 0.9em;
+            color: #718096;
+        }
+        .score-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .difficulty-selector {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .difficulty-selector select {
+            padding: 5px 10px;
+            font-size: 1em;
+            border-radius: 5px;
+            border: 1px solid #cbd5e0;
+        }
+        @media (max-width: 600px) {
+            .game-board {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 5px;
+            }
+            .card {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">返回主页</a>
+    
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">记忆翻牌</h1>
+            <div class="score-container">
+                <div class="score-box">
+                    <div class="score-label">翻牌次数</div>
+                    <div class="score-value" id="moves">0</div>
+                </div>
+                <div class="score-box">
+                    <div class="score-label">最佳记录</div>
+                    <div class="score-value" id="bestScore">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="difficulty-selector">
+            <select id="difficulty">
+                <option value="easy">简单 (4x4)</option>
+                <option value="medium">中等 (6x6)</option>
+                <option value="hard">困难 (8x8)</option>
+            </select>
+        </div>
+        
+        <div class="game-board" id="gameBoard"></div>
+        
+        <div class="controls">
+            <button id="newGame">新游戏</button>
+            <button id="reset">重置</button>
+        </div>
+    </div>
+
+    <script>
+        class MemoryGame {
+            constructor() {
+                this.cards = [];
+                this.flippedCards = [];
+                this.moves = 0;
+                this.bestScore = {
+                    easy: localStorage.getItem('memoryBestScoreEasy') || Infinity,
+                    medium: localStorage.getItem('memoryBestScoreMedium') || Infinity,
+                    hard: localStorage.getItem('memoryBestScoreHard') || Infinity
+                };
+                
+                this.gameBoard = document.getElementById('gameBoard');
+                this.movesDisplay = document.getElementById('moves');
+                this.bestScoreDisplay = document.getElementById('bestScore');
+                this.newGameButton = document.getElementById('newGame');
+                this.resetButton = document.getElementById('reset');
+                this.difficultySelect = document.getElementById('difficulty');
+                
+                this.init();
+            }
+            
+            init() {
+                this.newGameButton.addEventListener('click', () => this.startNewGame());
+                this.resetButton.addEventListener('click', () => this.resetGame());
+                this.difficultySelect.addEventListener('change', () => this.startNewGame());
+                
+                this.startNewGame();
+            }
+            
+            startNewGame() {
+                const difficulty = this.difficultySelect.value;
+                let gridSize;
+                
+                switch(difficulty) {
+                    case 'easy':
+                        gridSize = 4;
+                        break;
+                    case 'medium':
+                        gridSize = 6;
+                        break;
+                    case 'hard':
+                        gridSize = 8;
+                        break;
+                }
+                
+                this.gameBoard.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+                this.createCards(gridSize * gridSize);
+                this.updateBestScore();
+            }
+            
+            createCards(count) {
+                const symbols = ['🎮', '🎲', '🎯', '🎨', '🎭', '🎪', '🎟️', '🎠', '🎡', '🎢', '🎣', '🎤', '🎧', '🎨', '🎩', '🎪'];
+                this.cards = [];
+                this.flippedCards = [];
+                this.moves = 0;
+                this.movesDisplay.textContent = this.moves;
+                
+                // 创建配对的卡片
+                for (let i = 0; i < count / 2; i++) {
+                    const symbol = symbols[i % symbols.length];
+                    this.cards.push(symbol);
+                    this.cards.push(symbol);
+                }
+                
+                // 随机打乱卡片
+                for (let i = this.cards.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+                }
+                
+                this.renderCards();
+            }
+            
+            renderCards() {
+                this.gameBoard.innerHTML = '';
+                this.cards.forEach((symbol, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.dataset.index = index;
+                    
+                    const front = document.createElement('div');
+                    front.className = 'card-front';
+                    
+                    const back = document.createElement('div');
+                    back.className = 'card-back';
+                    back.textContent = symbol;
+                    
+                    card.appendChild(front);
+                    card.appendChild(back);
+                    
+                    card.addEventListener('click', () => this.flipCard(card));
+                    this.gameBoard.appendChild(card);
+                });
+            }
+            
+            flipCard(card) {
+                if (this.flippedCards.length === 2 || card.classList.contains('flipped') || card.classList.contains('matched')) {
+                    return;
+                }
+                
+                card.classList.add('flipped');
+                this.flippedCards.push(card);
+                
+                if (this.flippedCards.length === 2) {
+                    this.moves++;
+                    this.movesDisplay.textContent = this.moves;
+                    this.checkMatch();
+                }
+            }
+            
+            checkMatch() {
+                const [card1, card2] = this.flippedCards;
+                const match = card1.querySelector('.card-back').textContent === card2.querySelector('.card-back').textContent;
+                
+                if (match) {
+                    card1.classList.add('matched');
+                    card2.classList.add('matched');
+                    this.flippedCards = [];
+                    
+                    if (this.checkWin()) {
+                        this.handleWin();
+                    }
+                } else {
+                    setTimeout(() => {
+                        card1.classList.remove('flipped');
+                        card2.classList.remove('flipped');
+                        this.flippedCards = [];
+                    }, 1000);
+                }
+            }
+            
+            checkWin() {
+                return document.querySelectorAll('.card.matched').length === this.cards.length;
+            }
+            
+            handleWin() {
+                const difficulty = this.difficultySelect.value;
+                if (this.moves < this.bestScore[difficulty]) {
+                    this.bestScore[difficulty] = this.moves;
+                    localStorage.setItem(`memoryBestScore${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}`, this.moves);
+                    this.updateBestScore();
+                }
+                setTimeout(() => {
+                    alert(`恭喜你赢了！\n翻牌次数：${this.moves}`);
+                }, 500);
+            }
+            
+            updateBestScore() {
+                const difficulty = this.difficultySelect.value;
+                const best = this.bestScore[difficulty];
+                this.bestScoreDisplay.textContent = best === Infinity ? '-' : best;
+            }
+            
+            resetGame() {
+                this.flippedCards.forEach(card => {
+                    card.classList.remove('flipped');
+                });
+                this.flippedCards = [];
+                this.moves = 0;
+                this.movesDisplay.textContent = this.moves;
+            }
+        }
+        
+        // 初始化游戏
+        const game = new MemoryGame();
+    </script>
+</body>
+</html> 

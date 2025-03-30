@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简易塔防游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        #game-container {
+            display: inline-block;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        #game-board {
+            border: 2px solid #333;
+            background-color: #e8f4e8;
+        }
+        
+        #stats {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #ddd;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        .tower-option {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            margin: 5px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            cursor: pointer;
+            line-height: 60px;
+            font-weight: bold;
+            background-color: #ccc;
+        }
+        
+        #tower-options {
+            margin-top: 15px;
+        }
+        
+        #start-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        #start-btn:hover {
+            background-color: #45a049;
+        }
+        
+        #message {
+            margin-top: 10px;
+            font-size: 18px;
+            color: #d9534f;
+            height: 24px;
+        }
+    </style>
+</head>
+<body>
+    <h1>简易塔防游戏</h1>
+    <div id="message"></div>
+    <div id="stats">
+        <div>生命: <span id="lives">10</span></div>
+        <div>金钱: <span id="money">100</span></div>
+        <div>波数: <span id="wave">0</span></div>
+    </div>
+    
+    <div id="game-container">
+        <canvas id="game-board" width="600" height="400"></canvas>
+    </div>
+    
+    <div id="tower-options">
+        <div class="tower-option" data-type="basic" data-cost="50">基础塔<br>50金</div>
+        <div class="tower-option" data-type="cannon" data-cost="100">加农炮<br>100金</div>
+        <div class="tower-option" data-type="sniper" data-cost="150">狙击塔<br>150金</div>
+    </div>
+    
+    <button id="start-btn">开始下一波</button>
+    
+    <script>
+        // 游戏变量
+        const canvas = document.getElementById('game-board');
+        const ctx = canvas.getContext('2d');
+        const livesDisplay = document.getElementById('lives');
+        const moneyDisplay = document.getElementById('money');
+        const waveDisplay = document.getElementById('wave');
+        const messageDisplay = document.getElementById('message');
+        const startBtn = document.getElementById('start-btn');
+        const towerOptions = document.querySelectorAll('.tower-option');
+        
+        let gameState = 'idle'; // idle, building, inWave
+        let selectedTowerType = null;
+        let selectedTowerCost = 0;
+        let money = 100;
+        let lives = 10;
+        let wave = 0;
+        
+        // 游戏对象
+        const towers = [];
+        const enemies = [];
+        const projectiles = [];
+        const path = [
+            {x: 0, y: 200}, {x: 100, y: 200}, {x: 100, y: 100}, 
+            {x: 300, y: 100}, {x: 300, y: 300}, {x: 500, y: 300}, 
+            {x: 500, y: 200}, {x: 600, y: 200}
+        ];
+        
+        // 塔类
+        class Tower {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.range = 0;
+                this.damage = 0;
+                this.cooldown = 0;
+                this.cooldownMax = 0;
+                this.color = '';
+                this.size = 20;
+                this.setType(type);
+            }
+            
+            setType(type) {
+                this.type = type;
+                if (type === 'basic') {
+                    this.range = 100;
+                    this.damage = 1;
+                    this.cooldownMax = 30;
+                    this.color = '#3498db';
+                } else if (type === 'cannon') {
+                    this.range = 80;
+                    this.damage = 3;
+                    this.cooldownMax = 60;
+                    this.color = '#e74c3c';
+                } else if (type === 'sniper') {
+                    this.range = 150;
+                    this.damage = 5;
+                    this.cooldownMax = 90;
+                    this.color = '#2ecc71';
+                }
+                this.cooldown = this.cooldownMax;
+            }
+            
+            update() {
+                if (this.cooldown > 0) {
+                    this.cooldown--;
+                    return;
+                }
+                
+                // 寻找最近的敌人
+                let closestEnemy = null;
+                let closestDist = Infinity;
+                
+                enemies.forEach(enemy => {
+                    const dx = enemy.x - this.x;
+                    const dy = enemy.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < this.range && distance < closestDist) {
+                        closestDist = distance;
+                        closestEnemy = enemy;
+                    }
+                });
+                
+                // 攻击敌人
+                if (closestEnemy) {
+                    this.shoot(closestEnemy);
+                    this.cooldown = this.cooldownMax;
+                }
+            }
+            
+            shoot(enemy) {
+                projectiles.push({
+                    x: this.x,
+                    y: this.y,
+                    target: enemy,
+                    damage: this.damage,
+                    speed: 5,
+                    color: this.color
+                });
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.stroke();
+                
+                // 绘制范围（仅在建造时显示）
+                if (gameState === 'building') {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // 敌人类
+        class Enemy {
+            constructor(health, speed, value) {
+                this.health = health;
+                this.maxHealth = health;
+                this.speed = speed;
+                this.value = value;
+                this.pathIndex = 0;
+                this.x = path[0].x;
+                this.y = path[0].y;
+                this.size = 15;
+            }
+            
+            update() {
+                const target = path[this.pathIndex];
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < this.speed) {
+                    this.x = target.x;
+                    this.y = target.y;
+                    this.pathIndex++;
+                    
+                    // 到达终点
+                    if (this.pathIndex >= path.length) {
+                        lives--;
+                        livesDisplay.textContent = lives;
+                        if (lives <= 0) {
+                            gameOver();
+                        }
+                        return false; // 移除敌人
+                    }
+                } else {
+                    this.x += (dx / distance) * this.speed;
+                    this.y += (dy / distance) * this.speed;
+                }
+                
+                return true; // 保留敌人
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = '#9b59b6';
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.stroke();
+                
+                // 绘制血条
+                const healthPercent = this.health / this.maxHealth;
+                ctx.fillStyle = healthPercent > 0.6 ? '#2ecc71' : 
+                                  healthPercent > 0.3 ? '#f39c12' : '#e74c3c';
+                ctx.fillRect(this.x - this.size, this.y - this.size - 10, 
+                            this.size * 2 * healthPercent, 5);
+                ctx.strokeRect(this.x - this.size, this.y - this.size - 10, 
+                              this.size * 2, 5);
+            }
+        }
+        
+        // 初始化游戏
+        function initGame() {
+            towers.length = 0;
+            enemies.length = 0;
+            projectiles.length = 0;
+            money = 100;
+            lives = 10;
+            wave = 0;
+            gameState = 'idle';
+            
+            livesDisplay.textContent = lives;
+            moneyDisplay.textContent = money;
+            waveDisplay.textContent = wave;
+            messageDisplay.textContent = '';
+            
+            drawGame();
+        }
+        
+        // 绘制游戏
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制路径
+            ctx.beginPath();
+            ctx.moveTo(path[0].x, path[0].y);
+            for (let i = 1; i < path.length; i++) {
+                ctx.lineTo(path[i].x, path[i].y);
+            }
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 20;
+            ctx.stroke();
+            
+            // 绘制塔
+            towers.forEach(tower => tower.draw());
+            
+            // 绘制敌人
+            enemies.forEach(enemy => enemy.draw());
+            
+            // 绘制投射物
+            projectiles.forEach(proj => {
+                ctx.beginPath();
+                ctx.arc(proj.x, proj.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = proj.color;
+                ctx.fill();
+            });
+            
+            // 绘制建造中的塔预览
+            if (gameState === 'building' && selectedTowerType) {
+                ctx.beginPath();
+                ctx.arc(selectedTowerX, selectedTowerY, 20, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(52, 152, 219, 0.5)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.stroke();
+                
+                // 绘制范围
+                let range = 0;
+                if (selectedTowerType === 'basic') range = 100;
+                else if (selectedTowerType === 'cannon') range = 80;
+                else if (selectedTowerType === 'sniper') range = 150;
+                
+                ctx.beginPath();
+                ctx.arc(selectedTowerX, selectedTowerY, range, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.stroke();
+            }
+        }
+        
+        // 游戏循环
+        function gameLoop() {
+            if (gameState !== 'inWave') return;
+            
+            // 更新敌人
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                if (!enemies[i].update()) {
+                    enemies.splice(i, 1);
+                }
+            }
+            
+            // 更新投射物
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const proj = projectiles[i];
+                const target = proj.target;
+                
+                if (!target || target.health <= 0) {
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+                
+                const dx = target.x - proj.x;
+                const dy = target.y - proj.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < proj.speed) {
+                    // 命中目标
+                    target.health -= proj.damage;
+                    
+                    // 敌人死亡
+                    if (target.health <= 0) {
+                        money += target.value;
+                        moneyDisplay.textContent = money;
+                    }
+                    
+                    projectiles.splice(i, 1);
+                } else {
+                    proj.x += (dx / distance) * proj.speed;
+                    proj.y += (dy / distance) * proj.speed;
+                }
+            }
+            
+            // 更新塔
+            towers.forEach(tower => tower.update());
+            
+            // 检查波次是否结束
+            if (enemies.length === 0 && gameState === 'inWave') {
+                gameState = 'idle';
+                messageDisplay.textContent = '波次完成！准备下一波。';
+            }
+            
+            drawGame();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // 开始一波敌人
+        function startWave() {
+            if (gameState === 'inWave') return;
+            
+            wave++;
+            waveDisplay.textContent = wave;
+            gameState = 'inWave';
+            messageDisplay.textContent = `波次 ${wave} 进行中！`;
+            
+            // 根据波数生成敌人
+            const enemyCount = 5 + Math.floor(wave * 1.5);
+            const enemyHealth = 2 + wave;
+            const enemySpeed = 1 + wave * 0.05;
+            const enemyValue = 5 + wave;
+            
+            for (let i = 0; i < enemyCount; i++) {
+                setTimeout(() => {
+                    enemies.push(new Enemy(enemyHealth, enemySpeed, enemyValue));
+                }, i * 1000);
+            }
+            
+            gameLoop();
+        }
+        
+        // 游戏结束
+        function gameOver() {
+            gameState = 'idle';
+            messageDisplay.textContent = `游戏结束！你坚持到了第 ${wave} 波。`;
+            startBtn.textContent = '重新开始';
+        }
+        
+        // 事件监听器
+        canvas.addEventListener('click', (e) => {
+            if (gameState !== 'building') return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // 检查是否在路径上
+            let onPath = false;
+            for (let i = 0; i < path.length - 1; i++) {
+                const p1 = path[i];
+                const p2 = path[i + 1];
+                
+                // 简单的路径碰撞检测
+                if (p1.x === p2.x) { // 垂直路径
+                    if (Math.abs(x - p1.x) < 20 && 
+                        y >= Math.min(p1.y, p2.y) - 20 && 
+                        y <= Math.max(p1.y, p2.y) + 20) {
+                        onPath = true;
+                        break;
+                    }
+                } else { // 水平路径
+                    if (Math.abs(y - p1.y) < 20 && 
+                        x >= Math.min(p1.x, p2.x) - 20 && 
+                        x <= Math.max(p1.x, p2.x) + 20) {
+                        onPath = true;
+                        break;
+                    }
+                }
+            }
+            
+            // 检查是否与其他塔重叠
+            let overlapping = false;
+            for (const tower of towers) {
+                const dx = tower.x - x;
+                const dy = tower.y - y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 40) { // 两倍塔半径
+                    overlapping = true;
+                    break;
+                }
+            }
+            
+            if (!onPath && !overlapping && money >= selectedTowerCost) {
+                towers.push(new Tower(x, y, selectedTowerType));
+                money -= selectedTowerCost;
+                moneyDisplay.textContent = money;
+                
+                gameState = 'idle';
+                drawGame();
+            } else if (onPath) {
+                messageDisplay.textContent = '不能在路径上建造塔！';
+            } else if (overlapping) {
+                messageDisplay.textContent = '塔之间距离太近！';
+            } else {
+                messageDisplay.textContent = '金钱不足！';
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (gameState !== 'building') return;
+            
+            const rect = canvas.getBoundingClientRect();
+            selectedTowerX = e.clientX - rect.left;
+            selectedTowerY = e.clientY - rect.top;
+            
+            drawGame();
+        });
+        
+        towerOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                if (gameState === 'inWave') return;
+                
+                selectedTowerType = option.dataset.type;
+                selectedTowerCost = parseInt(option.dataset.cost);
+                
+                if (money >= selectedTowerCost) {
+                    gameState = 'building';
+                    messageDisplay.textContent = '点击地图放置塔';
+                } else {
+                    messageDisplay.textContent = '金钱不足！';
+                }
+            });
+        });
+        
+        startBtn.addEventListener('click', () => {
+            if (startBtn.textContent === '重新开始') {
+                initGame();
+                startBtn.textContent = '开始下一波';
+            } else {
+                startWave();
+            }
+        });
+        
+        // 初始化游戏
+        initGame();
+    </script>
+</body>
+</html>

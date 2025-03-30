@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>连连看游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .game-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .game-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .game-title {
+            font-size: 2em;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            background: #e2e8f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .tile {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border: 2px solid #cbd5e0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .tile:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .tile.selected {
+            background: #e2e8f0;
+            border-color: #4299e1;
+        }
+        .tile.matched {
+            visibility: hidden;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background: #3182ce;
+        }
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        .back-link:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">返回主页</a>
+    
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">连连看</h1>
+            <div class="game-info">
+                <span>剩余时间: <span id="timer">60</span>秒</span>
+                <span>得分: <span id="score">0</span></span>
+            </div>
+        </div>
+        
+        <div class="game-board" id="gameBoard"></div>
+        
+        <div class="controls">
+            <button id="startGame">开始新游戏</button>
+            <button id="resetGame">重置游戏</button>
+            <button id="hint">提示</button>
+        </div>
+    </div>
+
+    <script>
+        class LianLianKan {
+            constructor() {
+                this.board = [];
+                this.size = 8;
+                this.selectedTile = null;
+                this.score = 0;
+                this.timeLeft = 60;
+                this.timer = null;
+                this.gameStarted = false;
+                this.symbols = ['🎮', '🎲', '🎯', '🎨', '🎭', '🎪', '🎟️', '🎠', '🎡', '🎢', '🎣', '🎤', '🎥', '🎦', '🎧', '🎨'];
+                
+                this.init();
+            }
+            
+            init() {
+                this.gameBoard = document.getElementById('gameBoard');
+                this.startButton = document.getElementById('startGame');
+                this.resetButton = document.getElementById('resetGame');
+                this.hintButton = document.getElementById('hint');
+                this.timerDisplay = document.getElementById('timer');
+                this.scoreDisplay = document.getElementById('score');
+                
+                this.startButton.addEventListener('click', () => this.startGame());
+                this.resetButton.addEventListener('click', () => this.resetGame());
+                this.hintButton.addEventListener('click', () => this.showHint());
+                
+                this.createBoard();
+            }
+            
+            createBoard() {
+                this.board = [];
+                const pairs = [];
+                
+                // 创建配对的符号
+                for (let i = 0; i < (this.size * this.size) / 2; i++) {
+                    const symbol = this.symbols[i % this.symbols.length];
+                    pairs.push(symbol, symbol);
+                }
+                
+                // 随机打乱
+                for (let i = pairs.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+                }
+                
+                // 创建棋盘
+                for (let i = 0; i < this.size; i++) {
+                    this.board[i] = [];
+                    for (let j = 0; j < this.size; j++) {
+                        this.board[i][j] = pairs[i * this.size + j];
+                    }
+                }
+                
+                this.renderBoard();
+            }
+            
+            renderBoard() {
+                this.gameBoard.innerHTML = '';
+                for (let i = 0; i < this.size; i++) {
+                    for (let j = 0; j < this.size; j++) {
+                        const tile = document.createElement('div');
+                        tile.className = 'tile';
+                        tile.textContent = this.board[i][j];
+                        tile.dataset.row = i;
+                        tile.dataset.col = j;
+                        
+                        if (this.board[i][j] !== null) {
+                            tile.addEventListener('click', () => this.handleTileClick(i, j));
+                        }
+                        
+                        this.gameBoard.appendChild(tile);
+                    }
+                }
+            }
+            
+            handleTileClick(row, col) {
+                if (!this.gameStarted) return;
+                
+                const tile = this.gameBoard.children[row * this.size + col];
+                
+                if (this.selectedTile === null) {
+                    this.selectedTile = {row, col, tile};
+                    tile.classList.add('selected');
+                } else {
+                    const firstTile = this.selectedTile;
+                    
+                    if (firstTile.row === row && firstTile.col === col) {
+                        // 点击同一个格子，取消选择
+                        firstTile.tile.classList.remove('selected');
+                        this.selectedTile = null;
+                        return;
+                    }
+                    
+                    if (this.board[firstTile.row][firstTile.col] === this.board[row][col]) {
+                        // 匹配成功
+                        this.board[firstTile.row][firstTile.col] = null;
+                        this.board[row][col] = null;
+                        firstTile.tile.classList.add('matched');
+                        tile.classList.add('matched');
+                        this.score += 10;
+                        this.scoreDisplay.textContent = this.score;
+                        
+                        // 检查游戏是否结束
+                        if (this.checkGameComplete()) {
+                            this.gameComplete();
+                        }
+                    } else {
+                        // 不匹配
+                        firstTile.tile.classList.remove('selected');
+                    }
+                    
+                    this.selectedTile = null;
+                    this.renderBoard();
+                }
+            }
+            
+            checkGameComplete() {
+                for (let i = 0; i < this.size; i++) {
+                    for (let j = 0; j < this.size; j++) {
+                        if (this.board[i][j] !== null) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+            
+            gameComplete() {
+                clearInterval(this.timer);
+                this.gameStarted = false;
+                alert(`恭喜你完成游戏！得分：${this.score}`);
+            }
+            
+            startGame() {
+                if (this.gameStarted) return;
+                
+                this.gameStarted = true;
+                this.score = 0;
+                this.timeLeft = 60;
+                this.scoreDisplay.textContent = this.score;
+                this.timerDisplay.textContent = this.timeLeft;
+                
+                this.createBoard();
+                
+                this.timer = setInterval(() => {
+                    this.timeLeft--;
+                    this.timerDisplay.textContent = this.timeLeft;
+                    
+                    if (this.timeLeft <= 0) {
+                        clearInterval(this.timer);
+                        this.gameStarted = false;
+                        alert('时间到！游戏结束！');
+                    }
+                }, 1000);
+            }
+            
+            resetGame() {
+                clearInterval(this.timer);
+                this.gameStarted = false;
+                this.score = 0;
+                this.timeLeft = 60;
+                this.scoreDisplay.textContent = this.score;
+                this.timerDisplay.textContent = this.timeLeft;
+                this.createBoard();
+            }
+            
+            showHint() {
+                if (!this.gameStarted) return;
+                
+                // 查找可以匹配的格子
+                for (let i = 0; i < this.size; i++) {
+                    for (let j = 0; j < this.size; j++) {
+                        if (this.board[i][j] === null) continue;
+                        
+                        for (let k = 0; k < this.size; k++) {
+                            for (let l = 0; l < this.size; l++) {
+                                if (i === k && j === l) continue;
+                                if (this.board[k][l] === null) continue;
+                                
+                                if (this.board[i][j] === this.board[k][l]) {
+                                    // 高亮显示提示的格子
+                                    const tile1 = this.gameBoard.children[i * this.size + j];
+                                    const tile2 = this.gameBoard.children[k * this.size + l];
+                                    
+                                    tile1.style.backgroundColor = '#fefcbf';
+                                    tile2.style.backgroundColor = '#fefcbf';
+                                    
+                                    setTimeout(() => {
+                                        tile1.style.backgroundColor = '';
+                                        tile2.style.backgroundColor = '';
+                                    }, 1000);
+                                    
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                alert('没有可匹配的格子！');
+            }
+        }
+        
+        // 初始化游戏
+        const game = new LianLianKan();
+    </script>
+</body>
+</html> 
